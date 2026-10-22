@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photobooth by jakoy</title>
+    <style>
+        body {
+            background-color: #1a1a2e;
+            background-image: url('background.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh; 
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #layar-pembuka {
+            text-align: center;
+            background: rgba(22, 33, 62, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 400px;
+            border: 1px solid rgba(233, 69, 96, 0.3);
+        }
+
+        #layar-pembuka h1 {
+            color: #e94560;
+            margin-bottom: 10px;
+        }
+
+        #tombol-mulai {
+            background-color: #e94560;
+            color: white;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 25px;
+            margin-top: 20px;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+        }
+
+        #tombol-mulai:hover {
+            background-color: #d6336c;
+            transform: scale(1.05);
+        }
+
+        .booth-container {
+            display: none; 
+            background: rgba(22, 33, 62, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            text-align: center;
+            width: 100%;
+            max-width: 450px;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #000;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+        }
+        
+        #kamera { width: 100%; display: block; transform: scaleX(-1); transition: filter 0.3s ease; }
+        
+        #teks-timer {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 80px; font-weight: bold; color: white;
+            text-shadow: 2px 2px 15px rgba(233, 69, 96, 1); display: none; z-index: 10;
+        }
+        
+        #layar-flash {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: white; opacity: 0; pointer-events: none; transition: opacity 0.1s; z-index: 9;
+        }
+        
+        .menu-kontrol { display: flex; justify-content: space-between; margin-top: 15px; gap: 10px; }
+        select, button, input[type="text"] { 
+            padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); 
+            font-size: 14px; font-family: inherit; outline: none;
+        }
+        select, input[type="text"] { background-color: #0f3460; color: white; flex: 1; }
+        
+        .input-pesan-wrapper {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+            gap: 5px;
+            font-size: 13px;
+            color: #ccc;
+        }
+
+        .musik-wrapper {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        #toggle-musik, .btn-ganti-lagu {
+            background-color: #0f3460;
+            color: white;
+            flex: 1;
+            padding: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        #toggle-musik:hover, .btn-ganti-lagu:hover { background-color: #1a4b8c; }
+
+        #tombol-jepret { 
+            background-color: #e94560; color: white; width: 100%; padding: 15px; 
+            font-size: 18px; font-weight: bold; margin-top: 15px; cursor: pointer; 
+            transition: 0.3s; border: none; box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+        }
+        #tombol-jepret:hover { background-color: #d6336c; }
+        #tombol-jepret:disabled { background-color: #555; cursor: not-allowed; box-shadow: none; }
+        
+        #kanvas { display: none; }
+        
+        #hasil-container {
+            display: none;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px dashed rgba(255,255,255,0.2);
+        }
+        #hasil-foto { width: 100%; border-radius: 10px; border: 3px solid #e94560; box-shadow: 0 5px 20px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body>
+
+    <audio id="lagu-background" src="tuju belas.mp3" loop></audio>
+
+    <div id="layar-pembuka">
+        <h1>Halo Manusia! 👋</h1>
+        <p>Aku punya sesuatu yang spesial nih buat kamu. Pastikan volume HP/Laptop-mu nyala ya!</p>
+        <button id="tombol-mulai">Buka Kejutannya 🎁</button>
+    </div>
+
+    <div class="booth-container" id="booth-utama">
+        <h2 style="margin-top: 0; color: #e94560;">📸 Photobooth Kita</h2>
+        
+        <div class="video-wrapper">
+            <video id="kamera" autoplay playsinline></video>
+            <div id="teks-timer"></div>
+            <div id="layar-flash"></div>
+        </div>
+        
+        <div class="menu-kontrol">
+            <select id="pilihan-filter">
+                <option value="none">✨ Normal</option>
+                <option value="grayscale(100%)">🖤 Black & White</option>
+                <option value="sepia(80%)">📜 Vintage</option>
+                <option value="contrast(150%)">⚡ Kontras Tinggi</option>
+                <option value="saturate(180%) contrast(110%)">🌅 Warm Vivid</option>
+                <option value="hue-rotate(300deg) saturate(150%)">🌸 Dreamy Pink</option>
+                <option value="hue-rotate(180deg) contrast(130%)">🤖 Cyberpunk</option>
+                <option value="sepia(35%) contrast(110%) brightness(105%) saturate(130%)">📷 Fujifilm Classic</option>
+                <option value="sepia(50%) contrast(120%) brightness(95%) saturate(110%) hue-rotate(-10deg)">🎞️ Retro Kodak</option>
+                <option value="blur(3px)">☁️ Blur Estetik</option>
+                <option value="invert(100%)">👽 Efek Negatif</option>
+            </select>
+            
+            <select id="pilihan-stiker">
+                <option value="frame.jpg" data-jumlah="3">📕 Polaroid Merah (3 Foto)</option>
+                <option value="strip-putih" data-jumlah="3">🤍 Classic Strip Putih (3 Foto)</option>
+                <option value="strip-hitam" data-jumlah="3">🖤 Dark Strip Elegan (3 Foto)</option>
+                <option value="frame solo.jpg" data-jumlah="1">🖼️ Bingkai Solo (1 Foto)</option>
+                <option value="none" data-jumlah="1">📷 Foto Polos (1 Foto)</option>
+            </select>
+        </div>
+
+        <!-- Kolom Input Lirik Lagu -->
+        <div class="input-pesan-wrapper">
+            <label for="input-pesan">🎵 Tulis Lirik Lagu / Pesan di bawah foto:</label>
+            <input type="text" id="input-pesan" placeholder="Contoh: 'Waktu yang salah...' 🎶" maxlength="35" value="Rumah singgah / Sisa rasa...">
+        </div>
+
+        <!-- Checkbox Efek Grain Analog -->
+        <div style="margin-top: 10px; text-align: left; font-size: 13px; color: #ccc; display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="pakai-grain" checked style="width: 16px; height: 16px; accent-color: #e94560; cursor: pointer;">
+            <label for="pakai-grain" style="cursor: pointer;">🎞️ Tambahkan Efek Bintik Kamera Analog (Grain)</label>
+        </div>
+
+        <div class="musik-wrapper">
+            <button id="toggle-musik">🎵 Play / Pause</button>
+            <label for="upload-lagu" class="btn-ganti-lagu">
+                📂 Pilih Lagu Sendiri
+            </label>
+            <input type="file" id="upload-lagu" accept="audio/*" style="display: none;">
+        </div>
+
+        <button id="tombol-jepret">Mulai Sesi Foto 💖</button>
+        
+        <canvas id="kanvas"></canvas>
+        
+        <div id="hasil-container">
+            <h3 style="margin-top: 0; color: #e94560;">✨ Hasil Foto Kamu ✨</h3>
+            <img id="hasil-foto" alt="Hasil Foto" />
+            <p style="font-size: 12px; color: #aaa;">*Jika foto tidak otomatis terdownload, tekan dan tahan gambar di atas lalu pilih Simpan Gambar.</p>
+        </div>
+    </div>
+
+    <script>
+        const layarPembuka = document.getElementById('layar-pembuka');
+        const boothUtama = document.getElementById('booth-utama');
+        const tombolMulai = document.getElementById('tombol-mulai');
+        const laguBackground = document.getElementById('lagu-background');
+        const toggleMusik = document.getElementById('toggle-musik');
+        const uploadLagu = document.getElementById('upload-lagu');
+        
+        const video = document.getElementById('kamera');
+        const kanvas = document.getElementById('kanvas');
+        const context = kanvas.getContext('2d');
+        const tombolJepret = document.getElementById('tombol-jepret');
+        const hasilContainer = document.getElementById('hasil-container');
+        const hasilFoto = document.getElementById('hasil-foto');
+        const pilihanFilter = document.getElementById('pilihan-filter');
+        const pilihanStiker = document.getElementById('pilihan-stiker');
+        const inputPesan = document.getElementById('input-pesan');
+        const teksTimer = document.getElementById('teks-timer');
+        const layarFlash = document.getElementById('layar-flash');
+
+        let fotoKe = 0;
+        const arrayFoto = []; 
+
+        tombolMulai.addEventListener('click', () => {
+            laguBackground.play().then(() => {
+                toggleMusik.innerText = "⏸️ Pause Lagu";
+            }).catch(err => console.log("Lagu butuh interaksi manual."));
+            
+            layarPembuka.style.display = 'none';
+            boothUtama.style.display = 'block';
+
+            navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 } } })
+                .then(stream => { video.srcObject = stream; })
+                .catch(err => { alert("Tolong izinkan akses kamera agar bisa mulai berfoto!"); });
+        });
+
+        toggleMusik.addEventListener('click', () => {
+            if (laguBackground.paused) {
+                laguBackground.play();
+                toggleMusik.innerText = "⏸️ Pause Lagu";
+            } else {
+                laguBackground.pause();
+                toggleMusik.innerText = "🎵 Play Lagu";
+            }
+        });
+
+        uploadLagu.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                laguBackground.src = URL.createObjectURL(file);
+                laguBackground.play();
+                toggleMusik.innerText = "⏸️ Pause Lagu";
+            }
+        });
+
+        pilihanFilter.addEventListener('change', () => {
+            video.style.filter = pilihanFilter.value;
+        });
+
+        tombolJepret.addEventListener('click', () => {
+            tombolJepret.disabled = true;
+            hasilContainer.style.display = 'none';
+            
+            const opsiDipilih = pilihanStiker.options[pilihanStiker.selectedIndex];
+            const targetFoto = parseInt(opsiDipilih.getAttribute('data-jumlah'));
+            
+            fotoKe = 0;
+            arrayFoto.length = 0; 
+            
+            prosesHitungMundur(targetFoto, () => gabungkanFotoDanFrame());
+        });
+
+        function prosesHitungMundur(jumlahFoto, callbackSelesai) {
+            if (fotoKe >= jumlahFoto) {
+                tombolJepret.innerText = "⏳ Memproses Gambar...";
+                setTimeout(callbackSelesai, 300);
+                return;
+            }
+
+            tombolJepret.innerText = `📸 Mengambil Foto ${fotoKe + 1} dari ${jumlahFoto}...`;
+            let detik = 3;
+            teksTimer.style.display = 'block';
+            teksTimer.innerText = detik;
+
+            const hitungMundur = setInterval(() => {
+                detik--;
+                if (detik > 0) {
+                    teksTimer.innerText = detik;
+                } else {
+                    clearInterval(hitungMundur);
+                    teksTimer.style.display = 'none';
+                    ambilSatuFoto(jumlahFoto, callbackSelesai);
+                }
+            }, 1000);
+        }
+
+        function ambilSatuFoto(jumlahFoto, callbackSelesai) {
+            layarFlash.style.opacity = 1;
+            setTimeout(() => { layarFlash.style.opacity = 0; }, 150);
+
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = video.videoWidth || 640;
+            tempCanvas.height = video.videoHeight || 480;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            tempCtx.translate(tempCanvas.width, 0);
+            tempCtx.scale(-1, 1);
+            tempCtx.filter = pilihanFilter.value !== 'none' ? pilihanFilter.value : 'none'; 
+            tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+
+            const cekGrain = document.getElementById('pakai-grain');
+            if (cekGrain && cekGrain.checked) {
+                terapkanEfekGrain(tempCtx, tempCanvas.width, tempCanvas.height, 35);
+            }
+
+            arrayFoto.push(tempCanvas);
+            fotoKe++;
+
+            setTimeout(() => prosesHitungMundur(jumlahFoto, callbackSelesai), 1000);
+        }
+
+        function drawImageProp(ctx, img, x, y, w, h) {
+            const imgRatio = img.width / img.height;
+            const targetRatio = w / h;
+            let sx, sy, sw, sh;
+
+            if (imgRatio > targetRatio) {
+                sh = img.height;
+                sw = img.height * targetRatio;
+                sx = (img.width - sw) / 2;
+                sy = 0;
+            } else {
+                sw = img.width;
+                sh = img.width / targetRatio;
+                sx = 0;
+                sy = (img.height - sh) / 2;
+            }
+            ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+        }
+
+        function terapkanEfekGrain(ctx, lebar, tinggi, kekuatan = 30) {
+            const imgData = ctx.getImageData(0, 0, lebar, tinggi);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const bintik = (Math.random() - 0.5) * kekuatan;
+                data[i] = data[i] + bintik;
+                data[i+1] = data[i+1] + bintik;
+                data[i+2] = data[i+2] + bintik;
+            }
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        function cetakWatermark(ctx, lebarKanvas, tinggiKanvas) {
+            ctx.save();
+            ctx.font = 'italic 14px "Courier New", monospace';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.textAlign = 'right';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+            ctx.shadowBlur = 4;
+            ctx.fillText('📸 jakoybooth.vercel.app', lebarKanvas - 15, tinggiKanvas - 15);
+            ctx.restore();
+        }
+
+        function cetakLirikDanTanggal(lebarKanvas, posisiY, warnaTeks) {
+            const lirik = inputPesan.value.trim();
+            const tanggal = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+            
+            context.fillStyle = warnaTeks;
+            context.textAlign = 'center';
+            
+            if (lirik !== "") {
+                context.font = 'italic bold 22px "Segoe UI", sans-serif';
+                context.fillText(`"${lirik}"`, lebarKanvas / 2, posisiY);
+                
+                // Cetak tanggal di bawah lirik
+                context.font = '14px "Segoe UI", sans-serif';
+                context.fillText(`— ${tanggal}`, lebarKanvas / 2, posisiY + 28);
+            } else {
+                context.font = 'bold 18px "Segoe UI", sans-serif';
+                context.fillText(tanggal, lebarKanvas / 2, posisiY + 10);
+            }
+        }
+
+        function gabungkanFotoDanFrame() {
+            const jenisBingkai = pilihanStiker.value;
+
+            if (jenisBingkai === 'none') {
+                kanvas.width = arrayFoto[0].width;
+                kanvas.height = arrayFoto[0].height;
+                context.drawImage(arrayFoto[0], 0, 0);
+                if (inputPesan.value.trim() !== "") {
+                    cetakLirikDanTanggal(kanvas.width, kanvas.height - 45, "white");
+                }
+                selesaikanFoto();
+            } else if (jenisBingkai === 'strip-putih' || jenisBingkai === 'strip-hitam') {
+                const fW = 600;
+                const fH = 1500;
+                kanvas.width = fW;
+                kanvas.height = fH;
+
+                context.fillStyle = jenisBingkai === 'strip-putih' ? '#ffffff' : '#16213e';
+                context.fillRect(0, 0, fW, fH);
+
+                const kotakW = 500;
+                const kotakH = 375;
+                const x = (fW - kotakW) / 2;
+
+                for (let i = 0; i < 3; i++) {
+                    const y = 60 + i * (kotakH + 40);
+                    drawImageProp(context, arrayFoto[i], x, y, kotakW, kotakH);
+                }
+
+                const warnaTeks = jenisBingkai === 'strip-putih' ? '#333333' : '#e94560';
+                cetakLirikDanTanggal(fW, 1360, warnaTeks);
+                selesaikanFoto();
+            } else {
+                const imgBingkai = new Image();
+                imgBingkai.src = jenisBingkai;
+
+                imgBingkai.onerror = () => {
+                    alert(`Aduh! File '${jenisBingkai}' gagal dimuat. Pastikan file gambarnya ada di folder yang sama ya!`);
+                    tombolJepret.disabled = false;
+                    tombolJepret.innerText = "Mulai Sesi Foto 💖";
+                };
+
+                imgBingkai.onload = () => {
+                    const frameW = imgBingkai.width;
+                    const frameH = imgBingkai.height;
+                    kanvas.width = frameW;
+                    kanvas.height = frameH;
+
+                    context.drawImage(imgBingkai, 0, 0);
+
+                    if (arrayFoto.length === 1) {
+                        const lebarKotak = frameW * 0.72;  
+                        const tinggiKotak = frameH * 0.55; 
+                        const xTengah = (frameW - lebarKotak) / 2;
+                        const yTengah = (frameH - tinggiKotak) / 2;
+                        
+                        drawImageProp(context, arrayFoto[0], xTengah, yTengah, lebarKotak, tinggiKotak);
+                        cetakLirikDanTanggal(frameW, frameH * 0.88, "#ffffff");
+                    } else if (arrayFoto.length === 3) {
+                        const lebarKotak = frameW * 0.43;  
+                        const tinggiKotak = frameH * 0.185; 
+                        const xTengah = (frameW - lebarKotak) / 2;
+                        
+                        const yKotak1 = frameH * 0.272;  
+                        const yKotak2 = frameH * 0.468; 
+                        const yKotak3 = frameH * 0.665; 
+
+                        drawImageProp(context, arrayFoto[0], xTengah, yKotak1, lebarKotak, tinggiKotak);
+                        drawImageProp(context, arrayFoto[1], xTengah, yKotak2, lebarKotak, tinggiKotak);
+                        drawImageProp(context, arrayFoto[2], xTengah, yKotak3, lebarKotak, tinggiKotak);
+
+                        if (inputPesan.value.trim() !== "") {
+                            cetakLirikDanTanggal(frameW, frameH * 0.95, "#ffffff");
+                        }
+                    }
+
+                    selesaikanFoto();
+                };
+            }
+        }
+
+        function selesaikanFoto() {
+            try {
+                cetakWatermark(context, kanvas.width, kanvas.height);
+
+                const dataURL = kanvas.toDataURL('image/png');
+                hasilFoto.src = dataURL;
+                hasilContainer.style.display = 'block';
+
+                const link = document.createElement('a');
+                link.download = 'Photobooth-jakoy.png';
+                link.href = dataURL;
+                link.click();
+            } catch (err) {
+                alert("Gagal mendownload foto otomatis. Pastikan membuka web ini melalui Live Server.");
+            }
+            
+            tombolJepret.disabled = false;
+            tombolJepret.innerText = "Mulai Sesi Foto Lagi 💖";
+        }
+    </script>
+</body>
+</html>
